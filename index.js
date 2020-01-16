@@ -53,6 +53,19 @@ const VideoState = {
     ON_FLIPPED: 'on-flipped'
 };
 
+let typeArr = [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10'
+]
+
 /**
  * Class for the motion-related blocks in Scratch 3.0
  * @param {Runtime} runtime - the runtime instantiating this block package.
@@ -61,8 +74,9 @@ const VideoState = {
 class Scratch3Knn {
     constructor(runtime) {
         this.knn = null
-        this.trainTypes = ['A', 'B', 'C', 'D', 'E', 'F']
-
+        this.trainTypes = typeArr.map(item => {
+            return 'label' + item
+        })
         this.knnInit()
         /**
          * The runtime instantiating this block package.
@@ -76,7 +90,7 @@ class Scratch3Knn {
          * @type {number}
          */
         this._lastUpdate = null;
-
+        this.KNN_INTERVAL = 1000
         if (this.runtime.ioDevices) {
             // Clear target motion state values when the project starts.
             this.runtime.on(Runtime.PROJECT_RUN_START, this.reset.bind(this));
@@ -87,7 +101,7 @@ class Scratch3Knn {
             // Configure the video device with values from a globally stored
             // location.
             this.setVideoTransparency({
-                TRANSPARENCY: this.globalVideoTransparency
+                TRANSPARENCY: 10
             });
             this.videoToggle({
                 VIDEO_STATE: this.globalVideoState
@@ -99,7 +113,7 @@ class Scratch3Knn {
                 await this.gotResult()
                 console.log('knn result:', this.trainResult)
             }
-        }, 800)
+        }, this.KNN_INTERVAL)
     }
 
     /**
@@ -150,7 +164,7 @@ class Scratch3Knn {
         if (stage) {
             return stage.videoTransparency;
         }
-        return 50;
+        return 10;
     }
 
     set globalVideoTransparency(transparency) {
@@ -319,18 +333,31 @@ class Scratch3Knn {
      * @param {string} name - the translatable name to display in the video state menu
      * @param {string} value - the serializable value stored in the block
      */
-    get VIDEO_STATE_INFO() {
+    get VIDEO_STATE_INFO () {
         return [
             {
-                name: 'off',
+                name: formatMessage({
+                    id: 'videoSensing.off',
+                    default: 'off',
+                    description: 'Option for the "turn video [STATE]" block'
+                }),
                 value: VideoState.OFF
             },
             {
-                name: 'on',
+                name: formatMessage({
+                    id: 'videoSensing.on',
+                    default: 'on',
+                    description: 'Option for the "turn video [STATE]" block'
+                }),
                 value: VideoState.ON
             },
             {
-                name: 'on flipped',
+                name: formatMessage({
+                    id: 'videoSensing.onFlipped',
+                    default: 'on flipped',
+                    description: 'Option for the "turn video [STATE]" block that causes the video to be flipped' +
+                        ' horizontally (reversed as in a mirror)'
+                }),
                 value: VideoState.ON_FLIPPED
             }
         ];
@@ -347,7 +374,11 @@ class Scratch3Knn {
             blocks: [
                 {
                     opcode: 'videoToggle',
-                    text: 'turn video [VIDEO_STATE]',
+                    text: formatMessage({
+                        id: 'videoSensing.videoToggle',
+                        default: 'turn video [VIDEO_STATE]',
+                        description: 'Controls display of the video preview layer'
+                    }),
                     arguments: {
                         VIDEO_STATE: {
                             type: ArgumentType.NUMBER,
@@ -358,17 +389,21 @@ class Scratch3Knn {
                 },
                 {
                     opcode: 'setVideoTransparency',
-                    text: 'set video transparency to [TRANSPARENCY]',
+                    text: formatMessage({
+                        id: 'videoSensing.setVideoTransparency',
+                        default: 'set video transparency to [TRANSPARENCY]',
+                        description: 'Controls transparency of the video preview layer'
+                    }),
                     arguments: {
                         TRANSPARENCY: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 50
+                            defaultValue: 10
                         }
                     }
                 },
                 {
                     opcode: 'isloaded',
-                    blockType: BlockType.REPORTER,
+                    blockType: BlockType.BOOLEAN,
                     text: formatMessage({
                         id: 'knn.isloaded',
                         default: 'is loaded',
@@ -380,13 +415,13 @@ class Scratch3Knn {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'knn.trainA',
-                        default: 'Train label 1 [STRING]',
+                        default: 'Train 1 [STRING]',
                         description: 'Train A'
                     }),
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "A"
+                            defaultValue: "label1"
                         }
                     }
                 },
@@ -395,13 +430,13 @@ class Scratch3Knn {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'knn.trainB',
-                        default: 'Train label 2 [STRING]',
+                        default: 'Train 2 [STRING]',
                         description: 'Train B'
                     }),
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "B"
+                            defaultValue: "label2"
                         }
                     }
                 },
@@ -410,60 +445,44 @@ class Scratch3Knn {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'knn.trainC',
-                        default: 'Train label 3 [STRING]',
+                        default: 'Train 3 [STRING]',
                         description: 'Train C'
                     }),
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "C"
+                            defaultValue: "label3"
                         }
                     }
                 },
                 {
-                    opcode: 'trainD',
+                    opcode: 'train',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'knn.trainD',
-                        default: 'Train label 4 [STRING]',
-                        description: 'Train D'
+                        id: 'knn.train',
+                        default: 'Train label [type] [STRING]',
+                        description: 'Train'
                     }),
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "D"
+                            defaultValue: "label4"
+                        },
+                        type: {
+                            type: ArgumentType.STRING,
+                            menu: 'typemenu',
+                            defaultValue: "4"
                         }
                     }
                 },
                 {
-                    opcode: 'trainE',
+                    opcode: 'addTrainType',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'knn.trainE',
-                        default: 'Train label 5 [STRING]',
-                        description: 'Train E'
-                    }),
-                    arguments: {
-                        STRING: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "E"
-                        }
-                    }
-                },
-                {
-                    opcode: 'trainF',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'knn.trainF',
-                        default: 'Train label 6 [STRING]',
-                        description: 'Train F'
-                    }),
-                    arguments: {
-                        STRING: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "F"
-                        }
-                    }
+                        id: 'knn.addTrainType',
+                        default: 'add train type',
+                        description: 'add train type'
+                    })
                 },
                 {
                     opcode: 'resetTrain',
@@ -476,7 +495,52 @@ class Scratch3Knn {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "A"
+                            defaultValue: "label1"
+                        }
+                    }
+                },
+                {
+                    opcode: 'Sample1',
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'knn.sample',
+                        default: 'Sample',
+                        description: 'samples'
+                    }) + '1',
+                    arguments: {
+                        STRING: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "label1"
+                        }
+                    }
+                },
+                {
+                    opcode: 'Sample2',
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'knn.sample',
+                        default: 'Sample',
+                        description: 'samples'
+                    }) + '2',
+                    arguments: {
+                        STRING: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "label1"
+                        }
+                    }
+                },
+                {
+                    opcode: 'Sample3',
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'knn.sample',
+                        default: 'Sample',
+                        description: 'samples'
+                    }) + '3',
+                    arguments: {
+                        STRING: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "label1"
                         }
                     }
                 },
@@ -491,7 +555,7 @@ class Scratch3Knn {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "A"
+                            defaultValue: "label1"
                         }
                     }
                 },
@@ -518,7 +582,7 @@ class Scratch3Knn {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "A"
+                            defaultValue: "label1"
                         }
                     }
                 },
@@ -533,20 +597,35 @@ class Scratch3Knn {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: "A"
+                            defaultValue: "label1"
                         }
                     }
                 }
             ],
             menus: {
-                ATTRIBUTE: this._buildMenu(this.ATTRIBUTE_INFO),
-                SUBJECT: this._buildMenu(this.SUBJECT_INFO),
-                VIDEO_STATE: this._buildMenu(this.VIDEO_STATE_INFO)
+                ATTRIBUTE: {
+                    acceptReporters: true,
+                    items: this._buildMenu(this.ATTRIBUTE_INFO)
+                },
+                SUBJECT: {
+                    acceptReporters: true,
+                    items: this._buildMenu(this.SUBJECT_INFO)
+                },
+                VIDEO_STATE: {
+                    acceptReporters: true,
+                    items:this._buildMenu(this.VIDEO_STATE_INFO),
+                },
+                typemenu: {
+                    acceptReporters: true,
+                    items: '_typeArr'
+                }
             }
         };
     }
 
-
+    _typeArr () {
+        return typeArr.slice(3).map(item => item.toString())
+    }
     /**
      * A scratch command block handle that configures the video state from
      * passed arguments.
@@ -584,18 +663,38 @@ class Scratch3Knn {
 
     updateExampleCounts(args, util) {
         let counts = this.classifier.getClassExampleCount();
-        this.runtime.emit('SAY', util.target, 'say', this.trainTypes[0] + '样本数：' + (counts[0] || 0) + '\n'
-        + this.trainTypes[1] + '样本数：' + (counts[1] || 0) + '\n'
-        + this.trainTypes[2] + '样本数：' + (counts[2] || 0) + '\n'
-        + this.trainTypes[3] + '样本数：' + (counts[3] || 0) + '\n'
-        + this.trainTypes[4] + '样本数：' + (counts[4] || 0) + '\n'
-        + this.trainTypes[5] + '样本数：' + (counts[5] || 0));
-        console.log('A样本数：', counts[0], 'B样本数：', counts[1], 'C样本数：', counts[2], 'D样本数：', counts[3], 'E样本数：', counts[4], 'F样本数：', counts[5])
-        const _target = util.target;
+        this.runtime.emit('SAY', util.target, 'say', this.trainTypes.map((item, index) => {
+            return item + '样本数：' + (counts[index] || 0) + '\n'
+        }).join('\n'));
     }
 
     isloaded() {
         return Boolean(this.mobilenet)
+    }
+    train(args, util) {
+        if (this.globalVideoState === VideoState.OFF) {
+            console.log('请先打开摄像头')
+            return
+        }
+        let index = typeArr.findIndex(item => item === args.type)
+        let img = document.createElement('img')
+        img.src = this.runtime.ioDevices.video.getFrame({
+            format: Video.FORMAT_CANVAS,
+            dimensions: Scratch3Knn.DIMENSIONS
+        }).toDataURL("image/png")
+        img.width = 480
+        img.height = 360
+        img.onload = () => {
+            const img0 = tf.fromPixels(img);
+            const logits0 = this.mobilenet.infer(img0, 'conv_preds');
+            this.classifier.addExample(logits0, index);
+            this.trainTypes[index] = args.STRING
+        }
+    }
+
+    addTrainType() {
+        typeArr.push((typeArr.length + 1).toString())
+        this.trainTypes.push('label' + (this.trainTypes.length + 1).toString())
     }
 
     trainA(args, util) {
@@ -615,7 +714,6 @@ class Scratch3Knn {
             const logits0 = this.mobilenet.infer(img0, 'conv_preds');
             this.classifier.addExample(logits0, 0);
             this.trainTypes[0] = args.STRING
-            this.updateExampleCounts(args, util);
         }
     }
 
@@ -636,7 +734,6 @@ class Scratch3Knn {
             const logits0 = this.mobilenet.infer(img0, 'conv_preds');
             this.classifier.addExample(logits0, 1);
             this.trainTypes[1] = args.STRING
-            this.updateExampleCounts(args, util);
         }
     }
 
@@ -657,7 +754,6 @@ class Scratch3Knn {
             const logits0 = this.mobilenet.infer(img0, 'conv_preds');
             this.classifier.addExample(logits0, 2);
             this.trainTypes[2] = args.STRING
-            this.updateExampleCounts(args, util);
         }
     }
 
@@ -728,6 +824,21 @@ class Scratch3Knn {
         let index = this.trainTypes.indexOf(args.STRING)
         return counts[index] || 0
     }
+    Sample1(args, util) {
+        let counts = this.classifier.getClassExampleCount();
+        let index = 0
+        return counts[index] || 0
+    }
+    Sample2(args, util) {
+        let counts = this.classifier.getClassExampleCount();
+        let index = 1
+        return counts[index] || 0
+    }
+    Sample3(args, util) {
+        let counts = this.classifier.getClassExampleCount();
+        let index = 2
+        return counts[index] || 0
+    }
     resetTrain(args, util) {
         let counts = this.classifier.getClassExampleCount();
         let index = this.trainTypes.indexOf(args.STRING)
@@ -740,7 +851,7 @@ class Scratch3Knn {
             return
         }
         this.clearClass(index);
-        this.updateExampleCounts(args, util);
+        // this.updateExampleCounts(args, util);
     }
 
     getResult(args, util) {
@@ -789,6 +900,9 @@ class Scratch3Knn {
         if (this.trainResult === undefined) {
             return false
         }
+        setTimeout(() => {
+            this.trainResult = undefined
+        }, 100)
         return args.STRING === this.trainResult
     }
 
